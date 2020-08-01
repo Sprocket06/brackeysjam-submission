@@ -6,6 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Chroma" Version="0.17.1"/>
+    <PackageReference Include="Chroma" Version="0.17.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Content\Fonts\cmd.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>
