@@ -54,18 +54,24 @@ namespace Projection.UI
             context.Scissor = Rectangle.Empty;
         }
 
-        public virtual void Update(float delta)
+        public void Update(float delta)
         {
             if (SizeToContent)
             {
                 Size = MeasureSize();
             }
+            
+            UpdateState(delta);
         }
 
         protected Size MeasureSize()
             => Size;
 
         protected virtual void DrawContent(RenderContext context)
+        {
+        }
+
+        protected virtual void UpdateState(float delta)
         {
         }
 
@@ -92,6 +98,10 @@ namespace Projection.UI
         protected virtual void OnMouseButtonUp()
         {
         }
+        
+        protected virtual void OnMouseButtonDown()
+        {
+        }
 
         protected virtual void OnMouseEnter()
         {
@@ -99,6 +109,36 @@ namespace Projection.UI
 
         protected virtual void OnMouseLeave()
         {
+        }
+        
+        protected Vector2 GetTextPositionForAlignment(string text, TextAlignment alignment)
+        {
+            var measure = GUI.DefaultFont.Measure(text);
+
+            var verticalCenter = (Position.Y + Size.Height / 2) - measure.Height / 2;
+
+            switch (alignment)
+            {
+                case TextAlignment.Center:
+                    return new Vector2(
+                        (Position.X + Size.Width / 2) - measure.Width / 2,
+                        verticalCenter
+                    );
+
+                case TextAlignment.Right:
+                    return new Vector2(
+                        Position.X + Size.Width - measure.Width,
+                        verticalCenter
+                    );
+
+                case TextAlignment.Left:
+                    return new Vector2(
+                        Position.X,
+                        verticalCenter
+                    );
+
+                default: return Position;
+            }
         }
         
         public void MouseMoved(MouseMoveEventArgs e)
@@ -126,6 +166,7 @@ namespace Projection.UI
                 if (IsMouseOver)
                 {
                     IsMouseOver = false;
+                    
                     OnMouseLeave();
                     MouseLeave?.Invoke(this, EventArgs.Empty);
                 }
@@ -147,6 +188,7 @@ namespace Projection.UI
                         GUI.SetFocus(this);
                 }
                 
+                OnMouseButtonDown();
                 MouseButtonDown?.Invoke(this, e);
             }
         }
