@@ -26,10 +26,14 @@ namespace Projection
             var tex = Content.Load<Texture>("Sprites/UI/button_hover.png");
             var tex2 = Content.Load<Texture>("Sprites/UI/button_regular.png");
             var tex3 = Content.Load<Texture>("Sprites/UI/button_pressed.png");
+            var count = 0;
             
             var b = new Button(new Vector2(100), new Size(120, 28));
             b.Text = "sproket is drunk";
-            b.Clicked += (sender, args) => b.Text = "yes he is UwU";
+            b.Clicked += (sender, args) =>
+            {
+                b.Text = $"yes he is UwU: {count++}";
+            };
             b.RegularBrush = new TextureBrush(tex2);
             b.HoverBrush = new TextureBrush(tex);
             b.PressedBrush = new TextureBrush(tex3);
