@@ -18,7 +18,7 @@ namespace Projection
 
             var b = new Button(new Vector2(100), new Size(120, 28));
             b.Text = "sproket is drunk";
-            b.Pressed += (sender, args) => b.Text = "yes he is UwU";
+            b.Clicked += (sender, args) => b.Text = "yes he is UwU";
 
             GUI.AddChild(b);
         }

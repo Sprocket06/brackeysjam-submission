@@ -12,7 +12,7 @@ namespace Projection.UI
         public Vector2 Position { get; set; }
         public Size Size { get; set; }
 
-        public bool Enabled { get; set; }
+        public bool IsEnabled { get; set; }
         public bool IsMouseOver { get; private set; }
         public bool IsPressed { get; private set; }
 
@@ -24,15 +24,16 @@ namespace Projection.UI
 
         public event EventHandler MouseLeave;
         public event EventHandler MouseEnter;
-        public event EventHandler Pressed;
-        public event EventHandler Released;
+        public event EventHandler Clicked;
+        public event EventHandler<MouseButtonEventArgs> MouseButtonUp;
+        public event EventHandler<MouseButtonEventArgs> MouseButtonDown;
 
         public UiElement(Vector2 position, Size size)
         {
             Position = position;
             Size = size;
 
-            Enabled = true;
+            IsEnabled = true;
             ClipContent = true;
         }
 
@@ -62,9 +63,7 @@ namespace Projection.UI
         }
 
         protected Size MeasureSize()
-        {
-            return Size;
-        }
+            => Size;
 
         protected virtual void DrawContent(RenderContext context)
         {
@@ -86,11 +85,11 @@ namespace Projection.UI
         {
         }
 
-        protected virtual void OnPressed()
+        protected virtual void OnClicked()
         {
         }
 
-        protected virtual void OnReleased()
+        protected virtual void OnMouseButtonUp()
         {
         }
 
@@ -104,7 +103,7 @@ namespace Projection.UI
         
         public void MouseMoved(MouseMoveEventArgs e)
         {
-            if (!Enabled)
+            if (!IsEnabled)
             {
                 IsMouseOver = false;
                 return;
@@ -135,6 +134,9 @@ namespace Projection.UI
 
         public void MousePressed(MouseButtonEventArgs e)
         {
+            if (!IsEnabled)
+                return;
+            
             if (IsMouseOver)
             {
                 if (e.Button == MouseButton.Left)
@@ -143,25 +145,37 @@ namespace Projection.UI
                     
                     if (AcceptsFocus)
                         GUI.SetFocus(this);
-                    
-                    OnPressed();
-                    Pressed?.Invoke(this, EventArgs.Empty);
                 }
+                
+                MouseButtonDown?.Invoke(this, e);
             }
         }
 
         public void MouseReleased(MouseButtonEventArgs e)
         {
+            if (!IsEnabled)
+                return;
+            
             if (IsPressed)
             {
                 IsPressed = false;
-                OnReleased();
-                Released?.Invoke(this, EventArgs.Empty);
+
+                if (IsMouseOver)
+                {
+                    OnClicked();
+                    Clicked?.Invoke(this, EventArgs.Empty);
+                }
+
+                OnMouseButtonUp();
+                MouseButtonUp?.Invoke(this, e);
             }
         }
 
         public void TextInput(TextInputEventArgs e)
         {
+            if (!IsEnabled)
+                return;
+            
             if (HasKeyboardFocus)
             {
                 OnTextInput(e);
@@ -170,6 +184,9 @@ namespace Projection.UI
 
         public void KeyReleased(KeyEventArgs e)
         {
+            if (!IsEnabled)
+                return;
+            
             if (HasKeyboardFocus)
             {
                 OnKeyReleased(e);
@@ -178,6 +195,9 @@ namespace Projection.UI
 
         public void KeyPressed(KeyEventArgs e)
         {
+            if (!IsEnabled)
+                return;
+            
             if (HasKeyboardFocus)
             {
                 OnKeyPressed(e);
