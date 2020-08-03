@@ -20,7 +20,7 @@ namespace Projection.DialogSystem
         private Dialogue _dial;
 
         public MemoryVariableStore VariableStore { get; private set; }
-        public bool IsRunning { get; private set; }
+        public bool IsRunning => _dial.IsActive;
 
         public event EventHandler<string> NodeStarted;
         public event EventHandler<string> NodeEnded;
@@ -120,23 +120,40 @@ namespace Projection.DialogSystem
 
         public void Stop()
         {
+            if (!IsRunning)
+            {
+                _log.Warning("Refusing to stop a non-running dialog.");
+                return;
+            }
+            
             _dial.Stop();
         }
 
         private Dialogue.HandlerExecutionType HandleCommand(Command command)
         {
-            if (_commands.ContainsKey(command.Text))
+            var tokens = command.Text.Split(' ').ToList();
+            var cmd = tokens[0];
+            
+            if (_commands.ContainsKey(cmd))
             {
-                var result = (bool?)_commands[command.Text]?.Invoke(null, new object[1] {command.Text.Split(' ')});
+                tokens.RemoveAt(0);
+                var result = (bool?)_commands[cmd]?.Invoke(null, new object[] {tokens.ToArray()});
 
                 if (result.HasValue)
                 {
                     return result.Value ? Dialogue.HandlerExecutionType.ContinueExecution
                                         : Dialogue.HandlerExecutionType.PauseExecution;
                 }
+                else
+                {
+                    _log.Warning($"Command handler for '{command.Text}' has failed for whatever reason.");
+                }
+            }
+            else
+            {
+                _log.Warning($"No command defined for trigger '{command.Text}'.");
             }
 
-            _log.Warning($"No command defined for trigger '{command.Text}'. Continuing unconditionally");
             return Dialogue.HandlerExecutionType.ContinueExecution;
         }
 
@@ -168,16 +185,11 @@ namespace Projection.DialogSystem
 
         private void HandleChoice(OptionSet optSet)
         {
-            _log.Info("Choice:");
-            foreach (var opt in optSet.Options)
-                _log.Info($"{opt.Line}");
-
             Choice?.Invoke(this, optSet);
         }
 
         private void HandleDialogueComplete()
         {
-            IsRunning = false;
             DialogComplete?.Invoke(this, EventArgs.Empty);
         }
     }

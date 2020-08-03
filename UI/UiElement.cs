@@ -28,6 +28,8 @@ namespace Projection.UI
         public bool IsMouseOver { get; private set; }
         public bool IsPressed { get; private set; }
 
+        public Visibility Visibility { get; set; }
+
         public AutoSizeMode SizeToContent { get; set; }
         public bool ClipContent { get; set; }
 
@@ -51,6 +53,9 @@ namespace Projection.UI
 
         public void Draw(RenderContext context)
         {
+            if (Visibility != Visibility.Visible)
+                return;
+            
             if (ClipContent)
             {
                 context.Scissor = new Rectangle(
@@ -68,12 +73,19 @@ namespace Projection.UI
 
         public void Update(float delta)
         {
-            if (SizeToContent == AutoSizeMode.Both)
-                Size = MeasureSize();
-            else if (SizeToContent == AutoSizeMode.Height)
-                Size = new Size(Size.Width, MeasureHeight());
-            else if (SizeToContent == AutoSizeMode.Width)
-                Size = new Size(MeasureHeight(), Size.Height);
+            if (Visibility == Visibility.Collapsed)
+            {
+                Size = Size.Empty;
+            }
+            else
+            {
+                if (SizeToContent == AutoSizeMode.Both)
+                    Size = MeasureSize();
+                else if (SizeToContent == AutoSizeMode.Height)
+                    Size = new Size(Size.Width, MeasureHeight());
+                else if (SizeToContent == AutoSizeMode.Width)
+                    Size = new Size(MeasureHeight(), Size.Height);
+            }
 
             UpdateState(delta);
         }
