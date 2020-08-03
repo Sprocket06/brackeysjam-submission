@@ -64,7 +64,7 @@ namespace Projection.UI
             UpdateState(delta);
         }
 
-        protected Size MeasureSize()
+        protected virtual Size MeasureSize()
             => Size;
 
         protected virtual void DrawContent(RenderContext context)

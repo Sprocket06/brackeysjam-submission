@@ -5,11 +5,21 @@ position: 219,179
 ---
 This is the beginning of something. What would you like to see?
 [[The beginning, please.|begin]]
+[[Get me the real shit, baby!|debug]]
 ===
 title: begin
 tags: 
 colorID: 0
 position: 464,362
 ---
+<<debugcommand>>
 In the beginning, there was nothing.
+===
+title: debug
+tags: 
+colorID: 0
+position: 666,362
+---
+<<debugcommand>>
+wanna do like some rippin' and tearing eh? just go through this portal.
 ===

@@ -4,13 +4,13 @@ namespace Projection.DialogSystem
 {
     public class LineEventArgs : EventArgs
     {
-        public String Line { get; private set; }
-        public bool autoContinue;
+        public string Line { get; private set; }
+        public bool AutoContinue { get; set; }
 
-        public LineEventArgs(String line)
+        public LineEventArgs(string line)
         {
             Line = line;
-            autoContinue = false;
+            AutoContinue = false;
         }
     }
 }

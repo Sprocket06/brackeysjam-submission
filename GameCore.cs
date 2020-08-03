@@ -12,8 +12,10 @@ namespace Projection
 {
     internal class GameCore : Game
     {
-        private Log Log { get; } = LogManager.GetForCurrentAssembly();
-    
+        private static Log Log { get; } = LogManager.GetForCurrentAssembly();
+
+        private Button _button;
+
         internal GameCore()
         {
             Log.Info("Hello, world!");
@@ -22,34 +24,52 @@ namespace Projection
 
         protected override void LoadContent()
         {
-            Content.RegisterImporter<Dialog>(
-                (path, args) =>
-                {
-                    return new Dialog(path);
-                }
-            );
+            RegisterCustomImporters();
+
             GUI.LoadContent(Content);
 
             var tex = Content.Load<Texture>("Sprites/UI/button_hover.png");
             var tex2 = Content.Load<Texture>("Sprites/UI/button_regular.png");
             var tex3 = Content.Load<Texture>("Sprites/UI/button_pressed.png");
-            var count = 0;
             var test = Content.Load<Dialog>("Dialog/TestFile.yarn");
 
+            var count = 0;
 
-            var b = new Button(new Vector2(100), new Size(120, 28));
-            b.Text = "sproket is drunk";
-            b.Clicked += (sender, args) =>
+            _button = new Button(new Vector2(100), new Size(120, 28));
+            _button.Text = "sproket is drunk";
+            _button.Clicked += (sender, args) => { test.Choose(0); };
+            _button.RegularBrush = new TextureBrush(tex2);
+            _button.HoverBrush = new TextureBrush(tex);
+            _button.PressedBrush = new TextureBrush(tex3);
+            _button.Foreground = Color.Cyan;
+
+            _button.RefreshBrushes();
+            GUI.AddChild(_button);
+
+            test.Choice += (sender, s) =>
             {
-                b.Text = $"yes he is UwU: {count++}";
+                GUI.ClearVisualTree();
+
+                var baseVector = new Vector2(100, 100);
+                for (var i = 0; i < s.Options.Length; i++)
+                {
+                    var button = new Button(baseVector + new Vector2(baseVector.X, baseVector.Y + (25 * i)), Size.Empty)
+                        {SizeToContent = true};
+
+                    var id = i;
+                    button.Text = s.Options[i].Line.ID;
+                    button.Clicked += (o, args) =>
+                    {
+                        var sid = s.Options[id].Line.ID;
+                        Log.Debug($"{sid} was clicked UwU: {test.StringTable[sid].text}");
+
+                        test.Choose(s.Options[id].ID);
+                    };
+
+                    GUI.AddChild(button);
+                }
             };
-            b.RegularBrush = new TextureBrush(tex2);
-            b.HoverBrush = new TextureBrush(tex);
-            b.PressedBrush = new TextureBrush(tex3);
-            b.Foreground = Color.Cyan;
-            
-            b.RefreshBrushes();
-            GUI.AddChild(b);
+
             test.SetNode("start");
             test.Continue();
         }
@@ -92,6 +112,18 @@ namespace Projection
         protected override void TextInput(TextInputEventArgs e)
         {
             GUI.TextInput(e);
+        }
+
+        private void RegisterCustomImporters()
+        {
+            Content.RegisterImporter<Dialog>((path, args) => { return new Dialog(path); });
+        }
+
+        [DialogCommand("debugcommand")]
+        public static bool HandleDebugCommand(string[] parameters)
+        {
+            Log.Info("UwU I am a debug command!");
+            return true;
         }
     }
 }

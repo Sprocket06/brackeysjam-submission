@@ -31,6 +31,9 @@ namespace Projection.UI
         public static void AddChild(UiElement element)
             => _children.Add(element);
 
+        public static void ClearVisualTree()
+            => _children.Clear();
+
         public static void Draw(RenderContext context)
             => DoForAll((u) => u.Draw(context));
 

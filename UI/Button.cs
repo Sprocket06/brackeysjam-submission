@@ -75,6 +75,12 @@ namespace Projection.UI
             Background = RegularBrush;
         }
 
+        protected override Size MeasureSize()
+        {
+            var size = GUI.DefaultFont.Measure(Text);
+            return new Size(size.Width + 8, size.Height + 4);
+        }
+
         protected override void DrawContent(RenderContext context)
         {
             if (Background is SolidColorBrush scb)

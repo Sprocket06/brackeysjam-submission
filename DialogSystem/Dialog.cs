@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime;
 using System.Globalization;
+using System.Linq;
+using System.Reflection;
 using Chroma.Diagnostics.Logging;
 using Chroma.MemoryManagement;
 using Yarn;
@@ -11,14 +12,16 @@ namespace Projection.DialogSystem
 {
     public class Dialog : DisposableResource
     {
-        private Log _log = LogManager.GetForCurrentAssembly();
-        
+        private static Log _log = LogManager.GetForCurrentAssembly();
+
+        private static readonly Dictionary<string, MethodInfo> _commands;
+
         private Yarn.Program _prog;
         private Dialogue _dial;
-        private MemoryVariableStore _varStore;
 
-        public bool IsRunning = false;
-        
+        public MemoryVariableStore VariableStore { get; private set; }
+        public bool IsRunning { get; private set; }
+
         public event EventHandler<string> NodeStarted;
         public event EventHandler<string> NodeEnded;
         public event EventHandler DialogComplete;
@@ -27,29 +30,76 @@ namespace Projection.DialogSystem
 
         public IDictionary<string, Yarn.Compiler.StringInfo> StringTable { get; private set; }
 
+        static Dialog()
+        {
+            _commands = new Dictionary<string, MethodInfo>();
+
+            var asm = Assembly.GetExecutingAssembly();
+            var types = asm.GetTypes();
+
+            for (var i = 0; i < types.Length; i++)
+            {
+                var methods = types[i].GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+                    .ToList();
+
+                for (var j = 0; j < methods.Count; j++)
+                {
+                    var m = methods[j];
+
+                    if (m.ReturnType != typeof(bool))
+                        continue;
+
+                    var p = m.GetParameters();
+                    if (p.Length != 1)
+                    {
+                        continue;
+                    }
+                    
+                    if (p[0].ParameterType != typeof(string[]))
+                    {
+                        continue;
+                    }
+                    
+                    var attrib = m.GetCustomAttributes().FirstOrDefault(x => x is DialogCommandAttribute) as
+                        DialogCommandAttribute;
+
+                    if (attrib != null)
+                    {
+                        if (_commands.TryAdd(attrib.CommandName, methods[j]))
+                        {
+                            _log.Info($"Added command handler '{attrib.CommandName}'!");
+                        }
+                    }
+                }
+            }
+        }
+
         public Dialog(string fileName)
         {
             Compiler.CompileFile(fileName, out _prog, out var stringTable);
             StringTable = stringTable;
 
-            _varStore = new MemoryVariableStore();
-            _dial = new Dialogue(_varStore)
+            VariableStore = new MemoryVariableStore();
+            _dial = new Dialogue(VariableStore)
             {
                 LogDebugMessage = (s) => _log.Debug(s),
                 LogErrorMessage = (s) => _log.Error(s),
                 lineHandler = HandleLine,
                 commandHandler = HandleCommand,
                 optionsHandler = HandleChoice,
-                nodeStartHandler = (node) => {
+                nodeStartHandler = (node) =>
+                {
                     NodeStarted?.Invoke(this, node);
                     return Dialogue.HandlerExecutionType.ContinueExecution;
                 },
-                nodeCompleteHandler = (node) => {
+                nodeCompleteHandler = (node) =>
+                {
                     NodeEnded?.Invoke(this, node);
                     return Dialogue.HandlerExecutionType.ContinueExecution;
                 },
                 dialogueCompleteHandler = HandleDialogueComplete
             };
+
             _dial.AddProgram(_prog);
         }
 
@@ -75,49 +125,57 @@ namespace Projection.DialogSystem
 
         private Dialogue.HandlerExecutionType HandleCommand(Command command)
         {
-            //pretty sure this is where Yarn.Library comes in,
-            //but Command only has the one text property
-            //and I'm too lazy to debug exactly what to do with it.
-            throw new System.NotImplementedException();
+            if (_commands.ContainsKey(command.Text))
+            {
+                var result = (bool?)_commands[command.Text]?.Invoke(null, new object[1] {command.Text.Split(' ')});
+
+                if (result.HasValue)
+                {
+                    return result.Value ? Dialogue.HandlerExecutionType.ContinueExecution
+                                        : Dialogue.HandlerExecutionType.PauseExecution;
+                }
+            }
+
+            _log.Warning($"No command defined for trigger '{command.Text}'. Continuing unconditionally");
+            return Dialogue.HandlerExecutionType.ContinueExecution;
         }
 
         private Dialogue.HandlerExecutionType HandleLine(Line line)
         {
-            String localeCode = CultureInfo.CurrentCulture.Name;
-            Yarn.Compiler.StringInfo lineInfo = StringTable[line.ID];
+            var localeCode = CultureInfo.CurrentCulture.Name;
+            var lineInfo = StringTable[line.ID];
             _log.Info(lineInfo.text);
 
-            if(line.Substitutions.Length != 0)
+            if (line.Substitutions.Length != 0)
             {
-                for(var i = 0; i < line.Substitutions.Length; i++)
+                for (var i = 0; i < line.Substitutions.Length; i++)
                 {
-                    lineInfo.text.Replace($"{{{i}}}", line.Substitutions[i]);
+                    lineInfo.text = lineInfo.text.Replace($"{{{i}}}", line.Substitutions[i]);
                 }
             }
-            
+
             lineInfo.text = Dialogue.ExpandFormatFunctions(lineInfo.text, localeCode);
             var args = new LineEventArgs(lineInfo.text);
             NewLine?.Invoke(this, args);
-            if (args.autoContinue)
+            
+            if (args.AutoContinue)
             {
                 return Dialogue.HandlerExecutionType.ContinueExecution;
             }
+
             return Dialogue.HandlerExecutionType.PauseExecution;
-            
         }
-        
+
         private void HandleChoice(OptionSet optSet)
         {
             _log.Info("Choice:");
-            foreach(var opt in optSet.Options)
-            {
+            foreach (var opt in optSet.Options)
                 _log.Info($"{opt.Line}");
-            }
-            
+
             Choice?.Invoke(this, optSet);
         }
-        
-        void HandleDialogueComplete()
+
+        private void HandleDialogueComplete()
         {
             IsRunning = false;
             DialogComplete?.Invoke(this, EventArgs.Empty);
