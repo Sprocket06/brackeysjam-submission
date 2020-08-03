@@ -1,5 +1,7 @@
+using System;
 using System.Drawing;
 using System.Numerics;
+using System.Threading.Tasks;
 using Chroma;
 using Chroma.Diagnostics.Logging;
 using Chroma.Graphics;
@@ -14,7 +16,6 @@ namespace Projection
     {
         private static Log Log { get; } = LogManager.GetForCurrentAssembly();
 
-        private Button _button;
         private string _dialogText;
 
         internal GameCore()
@@ -34,19 +35,6 @@ namespace Projection
             var tex3 = Content.Load<Texture>("Sprites/UI/button_pressed.png");
             var test = Content.Load<Dialog>("Dialog/TestFile.yarn");
 
-            var count = 0;
-
-            _button = new Button(new Vector2(100), new Size(120, 28));
-            _button.Text = "sproket is drunk";
-            _button.Clicked += (sender, args) => { test.Choose(0); };
-            _button.RegularBrush = new TextureBrush(tex2);
-            _button.HoverBrush = new TextureBrush(tex);
-            _button.PressedBrush = new TextureBrush(tex3);
-            _button.Foreground = Color.Cyan;
-
-            _button.RefreshBrushes();
-            GUI.AddChild(_button);
-
             test.Choice += (sender, s) =>
             {
                 GUI.ClearVisualTree();
@@ -54,7 +42,7 @@ namespace Projection
                 var baseVector = new Vector2(100, 100);
                 for (var i = 0; i < s.Options.Length; i++)
                 {
-                    var button = new Button(baseVector + new Vector2(baseVector.X, baseVector.Y + (25 * i)), Size.Empty)
+                    var button = new Button(baseVector + new Vector2(0, 25 * i), Size.Empty)
                         {SizeToContent = true};
 
                     var id = i;
@@ -72,9 +60,26 @@ namespace Projection
                 }
             };
 
-            test.NewLine += (sender, args) =>
+            test.NewLine += async (sender, args) =>
             {
-                _dialogText = args.Line;
+                GUI.ClearVisualTree();
+                args.AutoContinue = false;
+                _dialogText = string.Empty;
+                
+                await Task.Run(async () =>
+                {
+                    foreach (var c in args.Line)
+                    {
+                        _dialogText += c;
+
+                        if (c == '.')
+                            await Task.Delay(500);
+                        else
+                            await Task.Delay(30);
+                    }
+                });
+                
+                test.Continue();
             };
 
             test.DialogComplete += (sender, args) => GUI.ClearVisualTree();
