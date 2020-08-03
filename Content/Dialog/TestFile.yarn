@@ -1,0 +1,15 @@
+title: start
+tags: 
+colorID: 0
+position: 219,179
+---
+This is the beginning of something. What would you like to see?
+[[The beginning, please.|begin]]
+===
+title: begin
+tags: 
+colorID: 0
+position: 464,362
+---
+In the beginning, there was nothing.
+===
