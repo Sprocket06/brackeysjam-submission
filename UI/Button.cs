@@ -1,6 +1,8 @@
 ﻿using System.Drawing;
 using System.Numerics;
 using Chroma.Graphics;
+using Chroma.Graphics.TextRendering;
+using Chroma.Input.EventArgs;
 using Color = Chroma.Graphics.Color;
 
 namespace Projection.UI
@@ -16,6 +18,7 @@ namespace Projection.UI
 
         public string Text { get; set; }
         public TextAlignment TextAlignment { get; set; } = TextAlignment.Center;
+        public TrueTypeFont Font { get; set; } = GUI.DefaultFont;
 
         public Button(Vector2 position, Size size) : base(position, size)
         {
@@ -38,7 +41,7 @@ namespace Projection.UI
             }
         }
 
-        protected override void OnMouseButtonUp()
+        protected override void OnMouseButtonUp(MouseButtonEventArgs e)
         {
             if (IsMouseOver)
             {
@@ -50,7 +53,7 @@ namespace Projection.UI
             }
         }
 
-        protected override void OnMouseButtonDown()
+        protected override void OnMouseButtonDown(MouseButtonEventArgs e)
         {
             if (IsPressed)
             {
@@ -75,6 +78,16 @@ namespace Projection.UI
             Background = RegularBrush;
         }
 
+        protected override int MeasureWidth()
+        {
+            return Font.Measure(Text).Width + 4;
+        }
+
+        protected override int MeasureHeight()
+        {
+            return Font.Measure(Text).Height + 8;
+        }
+
         protected override Size MeasureSize()
         {
             var size = GUI.DefaultFont.Measure(Text);
@@ -87,7 +100,7 @@ namespace Projection.UI
             {
                 context.Rectangle(
                     ShapeMode.Fill,
-                    Position,
+                    AbsolutePosition,
                     Size,
                     scb.Color
                 );
@@ -99,7 +112,7 @@ namespace Projection.UI
                 tb.Texture.VirtualResolution = new Size(Size.Height, Size.Width);
                 context.DrawTexture(
                     tb.Texture,
-                    Position,
+                    AbsolutePosition,
                     Vector2.One, 
                     Vector2.Zero,
                     0f
@@ -109,7 +122,7 @@ namespace Projection.UI
             }
 
             context.DrawString(
-                GUI.DefaultFont,
+                Font,
                 Text,
                 GetTextPositionForAlignment(Text, TextAlignment),
                 Foreground

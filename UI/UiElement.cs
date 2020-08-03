@@ -9,6 +9,18 @@ namespace Projection.UI
 {
     public abstract class UiElement
     {
+        public Vector2 AbsolutePosition
+        {
+            get
+            {
+                if (Parent == null)
+                    return Position;
+
+                return Parent.Position + Position;
+            }
+        }
+
+        public UiElement Parent { get; set; }
         public Vector2 Position { get; set; }
         public Size Size { get; set; }
 
@@ -16,7 +28,7 @@ namespace Projection.UI
         public bool IsMouseOver { get; private set; }
         public bool IsPressed { get; private set; }
 
-        public bool SizeToContent { get; set; }
+        public AutoSizeMode SizeToContent { get; set; }
         public bool ClipContent { get; set; }
 
         public virtual bool AcceptsFocus { get; set; }
@@ -42,27 +54,35 @@ namespace Projection.UI
             if (ClipContent)
             {
                 context.Scissor = new Rectangle(
-                    (int)Position.X,
-                    (int)Position.Y,
+                    (int)AbsolutePosition.X ,
+                    (int)AbsolutePosition.Y,
                     Size.Width,
                     Size.Height
                 );
             }
 
             DrawContent(context);
-            
+
             context.Scissor = Rectangle.Empty;
         }
 
         public void Update(float delta)
         {
-            if (SizeToContent)
-            {
+            if (SizeToContent == AutoSizeMode.Both)
                 Size = MeasureSize();
-            }
-            
+            else if (SizeToContent == AutoSizeMode.Height)
+                Size = new Size(Size.Width, MeasureHeight());
+            else if (SizeToContent == AutoSizeMode.Width)
+                Size = new Size(MeasureHeight(), Size.Height);
+
             UpdateState(delta);
         }
+
+        protected virtual int MeasureWidth()
+            => Size.Width;
+
+        protected virtual int MeasureHeight()
+            => Size.Height;
 
         protected virtual Size MeasureSize()
             => Size;
@@ -95,11 +115,11 @@ namespace Projection.UI
         {
         }
 
-        protected virtual void OnMouseButtonUp()
+        protected virtual void OnMouseButtonUp(MouseButtonEventArgs e)
         {
         }
-        
-        protected virtual void OnMouseButtonDown()
+
+        protected virtual void OnMouseButtonDown(MouseButtonEventArgs e)
         {
         }
 
@@ -110,37 +130,37 @@ namespace Projection.UI
         protected virtual void OnMouseLeave()
         {
         }
-        
+
         protected Vector2 GetTextPositionForAlignment(string text, TextAlignment alignment)
         {
             var measure = GUI.DefaultFont.Measure(text);
 
-            var verticalCenter = (Position.Y + Size.Height / 2) - measure.Height / 2;
+            var verticalCenter = (AbsolutePosition.Y + Size.Height / 2) - measure.Height / 2;
 
             switch (alignment)
             {
                 case TextAlignment.Center:
                     return new Vector2(
-                        (Position.X + Size.Width / 2) - measure.Width / 2,
+                        (AbsolutePosition.X + Size.Width / 2) - measure.Width / 2,
                         verticalCenter
                     );
 
                 case TextAlignment.Right:
                     return new Vector2(
-                        Position.X + Size.Width - measure.Width,
+                        AbsolutePosition.X + Size.Width - measure.Width,
                         verticalCenter
                     );
 
                 case TextAlignment.Left:
                     return new Vector2(
-                        Position.X,
+                        AbsolutePosition.X,
                         verticalCenter
                     );
 
-                default: return Position;
+                default: return AbsolutePosition;
             }
         }
-        
+
         public void MouseMoved(MouseMoveEventArgs e)
         {
             if (!IsEnabled)
@@ -150,9 +170,9 @@ namespace Projection.UI
             }
 
             OnMouseMoved(e);
-            
-            if (e.Position.X >= Position.X && e.Position.X < Position.X + Size.Width &&
-                e.Position.Y >= Position.Y && e.Position.Y < Position.Y + Size.Height)
+
+            if (e.Position.X >= AbsolutePosition.X && e.Position.X < AbsolutePosition.X + Size.Width &&
+                e.Position.Y >= AbsolutePosition.Y && e.Position.Y < AbsolutePosition.Y + Size.Height)
             {
                 if (!IsMouseOver)
                 {
@@ -166,7 +186,7 @@ namespace Projection.UI
                 if (IsMouseOver)
                 {
                     IsMouseOver = false;
-                    
+
                     OnMouseLeave();
                     MouseLeave?.Invoke(this, EventArgs.Empty);
                 }
@@ -177,18 +197,18 @@ namespace Projection.UI
         {
             if (!IsEnabled)
                 return;
-            
+
             if (IsMouseOver)
             {
                 if (e.Button == MouseButton.Left)
                 {
                     IsPressed = true;
-                    
+
                     if (AcceptsFocus)
                         GUI.SetFocus(this);
                 }
-                
-                OnMouseButtonDown();
+
+                OnMouseButtonDown(e);
                 MouseButtonDown?.Invoke(this, e);
             }
         }
@@ -197,7 +217,7 @@ namespace Projection.UI
         {
             if (!IsEnabled)
                 return;
-            
+
             if (IsPressed)
             {
                 IsPressed = false;
@@ -208,7 +228,7 @@ namespace Projection.UI
                     Clicked?.Invoke(this, EventArgs.Empty);
                 }
 
-                OnMouseButtonUp();
+                OnMouseButtonUp(e);
                 MouseButtonUp?.Invoke(this, e);
             }
         }
@@ -217,7 +237,7 @@ namespace Projection.UI
         {
             if (!IsEnabled)
                 return;
-            
+
             if (HasKeyboardFocus)
             {
                 OnTextInput(e);
@@ -228,7 +248,7 @@ namespace Projection.UI
         {
             if (!IsEnabled)
                 return;
-            
+
             if (HasKeyboardFocus)
             {
                 OnKeyReleased(e);
@@ -239,7 +259,7 @@ namespace Projection.UI
         {
             if (!IsEnabled)
                 return;
-            
+
             if (HasKeyboardFocus)
             {
                 OnKeyPressed(e);

@@ -1,14 +1,10 @@
-using System;
-using System.Drawing;
-using System.Numerics;
-using System.Threading.Tasks;
 using Chroma;
 using Chroma.Diagnostics.Logging;
 using Chroma.Graphics;
 using Chroma.Input.EventArgs;
-using Projection.UI;
+using Chroma.Windowing;
 using Projection.DialogSystem;
-using Color = Chroma.Graphics.Color;
+using Projection.UI;
 
 namespace Projection
 {
@@ -16,10 +12,12 @@ namespace Projection
     {
         private static Log Log { get; } = LogManager.GetForCurrentAssembly();
 
-        private string _dialogText;
+        public new static Window Window { get; private set; }
 
         internal GameCore()
         {
+            Window = base.Window;
+            
             Log.Info("Hello, world!");
             GraphicsManager.AutoClearColor = Color.Black;
         }
@@ -29,73 +27,19 @@ namespace Projection
             RegisterCustomImporters();
 
             GUI.LoadContent(Content);
-
-            var tex = Content.Load<Texture>("Sprites/UI/button_hover.png");
-            var tex2 = Content.Load<Texture>("Sprites/UI/button_regular.png");
-            var tex3 = Content.Load<Texture>("Sprites/UI/button_pressed.png");
             var test = Content.Load<Dialog>("Dialog/TestFile.yarn");
 
-            test.Choice += (sender, s) =>
-            {
-                GUI.ClearVisualTree();
-
-                var baseVector = new Vector2(100, 100);
-                for (var i = 0; i < s.Options.Length; i++)
-                {
-                    var button = new Button(baseVector + new Vector2(0, 25 * i), Size.Empty)
-                        {SizeToContent = true};
-
-                    var id = i;
-                    button.Text = test.StringTable[s.Options[i].Line.ID].text;
-                    button.Clicked += (o, args) =>
-                    {
-                        var sid = s.Options[id].Line.ID;
-                        Log.Debug($"{sid} was clicked UwU: {test.StringTable[sid].text}");
-
-                        test.Choose(s.Options[id].ID);
-                        test.Continue();
-                    };
-
-                    GUI.AddChild(button);
-                }
-            };
-
-            test.NewLine += async (sender, args) =>
-            {
-                GUI.ClearVisualTree();
-                args.AutoContinue = false;
-                _dialogText = string.Empty;
-                
-                await Task.Run(async () =>
-                {
-                    foreach (var c in args.Line)
-                    {
-                        _dialogText += c;
-
-                        if (c == '.')
-                            await Task.Delay(500);
-                        else
-                            await Task.Delay(30);
-                    }
-                });
-                
-                test.Continue();
-            };
-
-            test.DialogComplete += (sender, args) => GUI.ClearVisualTree();
-
-            test.SetNode("start");
-            test.Continue();
+            DialogManager.StartDialog(test);
         }
 
         protected override void Draw(RenderContext context)
         {
-            context.DrawString(_dialogText, new Vector2(100, 75));
             GUI.Draw(context);
         }
 
         protected override void Update(float delta)
         {
+            DialogManager.Update(delta);
             GUI.Update(delta);
         }
 
