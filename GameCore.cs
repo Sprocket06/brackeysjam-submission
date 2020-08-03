@@ -15,11 +15,12 @@ namespace Projection
         private static Log Log { get; } = LogManager.GetForCurrentAssembly();
 
         private Button _button;
+        private string _dialogText;
 
         internal GameCore()
         {
             Log.Info("Hello, world!");
-            GraphicsManager.AutoClearColor = Color.Gray;
+            GraphicsManager.AutoClearColor = Color.Black;
         }
 
         protected override void LoadContent()
@@ -57,18 +58,26 @@ namespace Projection
                         {SizeToContent = true};
 
                     var id = i;
-                    button.Text = s.Options[i].Line.ID;
+                    button.Text = test.StringTable[s.Options[i].Line.ID].text;
                     button.Clicked += (o, args) =>
                     {
                         var sid = s.Options[id].Line.ID;
                         Log.Debug($"{sid} was clicked UwU: {test.StringTable[sid].text}");
 
                         test.Choose(s.Options[id].ID);
+                        test.Continue();
                     };
 
                     GUI.AddChild(button);
                 }
             };
+
+            test.NewLine += (sender, args) =>
+            {
+                _dialogText = args.Line;
+            };
+
+            test.DialogComplete += (sender, args) => GUI.ClearVisualTree();
 
             test.SetNode("start");
             test.Continue();
@@ -76,6 +85,7 @@ namespace Projection
 
         protected override void Draw(RenderContext context)
         {
+            context.DrawString(_dialogText, new Vector2(100, 75));
             GUI.Draw(context);
         }
 

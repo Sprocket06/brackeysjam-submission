@@ -22,4 +22,13 @@ position: 666,362
 ---
 <<debugcommand>>
 wanna do like some rippin' and tearing eh? just go through this portal.
+[[Okay then...|portal]]
+===
+title: portal
+tags: 
+colorID: 0
+position: 666,666
+---
+<<debugcommand portal>>
+*yoink*
 ===
