@@ -21,6 +21,8 @@ namespace Projection.DialogSystem
 
         public MemoryVariableStore VariableStore { get; private set; }
         public bool IsRunning => _dial.IsActive;
+        public string Name => _prog.Name;
+        public string CurrentNode => _dial.currentNode;
 
         public event EventHandler<string> NodeStarted;
         public event EventHandler<string> NodeEnded;
